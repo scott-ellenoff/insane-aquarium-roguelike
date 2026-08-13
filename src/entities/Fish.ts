@@ -88,7 +88,6 @@ export class Fish {
     this.group.position.addScaledVector(this.velocity, dt);
     this.group.position.x = THREE.MathUtils.clamp(this.group.position.x, WORLD_BOUNDS.minX, WORLD_BOUNDS.maxX);
     this.group.position.y = THREE.MathUtils.clamp(this.group.position.y, WORLD_BOUNDS.minY, WORLD_BOUNDS.maxY);
-    this.group.rotation.y = this.velocity.x >= 0 ? 0 : Math.PI;
     this.group.rotation.z = Math.sin(performance.now() * 0.002 + this.group.position.x) * 0.04;
 
     if (config.attackDamage > 0 && this.attackTimer <= 0) {
