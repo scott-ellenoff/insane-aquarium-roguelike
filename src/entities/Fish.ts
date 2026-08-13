@@ -6,6 +6,9 @@ import type { Food } from './Food';
 
 export type FishSpecies = 'goldfish' | 'puffer';
 
+const HEALTH_BAR_WIDTH = 1.9;
+const HEALTH_BAR_HEIGHT = 0.16;
+
 export class Fish {
   readonly group: THREE.Group;
   readonly species: FishSpecies;
@@ -19,6 +22,8 @@ export class Fish {
   private readonly speed: number;
   private readonly velocity = new THREE.Vector3();
   private readonly wanderTarget = new THREE.Vector3();
+  private readonly healthBarFill: THREE.Sprite;
+  private readonly healthBarFillMaterial: THREE.SpriteMaterial;
   private wanderTimer = 0;
   private coinTimer: number;
   private attackTimer = 0;
@@ -34,6 +39,13 @@ export class Fish {
     this.group.position.copy(position);
     this.group.scale.setScalar(species === 'puffer' ? 0.82 : 0.78);
     this.group.userData.entity = this;
+
+    const healthBar = this.createHealthBar();
+    this.healthBarFill = healthBar.fill;
+    this.healthBarFillMaterial = healthBar.fillMaterial;
+    this.group.add(healthBar.background, healthBar.fill);
+    this.updateHealthBar();
+
     this.pickWanderTarget();
   }
 
@@ -89,11 +101,13 @@ export class Fish {
       }
     }
 
+    this.updateHealthBar();
     return result;
   }
 
   takeDamage(amount: number): void {
     this.health -= amount;
+    this.updateHealthBar();
     this.group.scale.multiplyScalar(0.92);
     window.setTimeout(() => {
       if (!this.dead) {
@@ -107,6 +121,51 @@ export class Fish {
 
   getAttackDamage(): number {
     return FISH_CATALOG[this.species].attackDamage * this.attackMultiplier;
+  }
+
+  private createHealthBar(): {
+    background: THREE.Sprite;
+    fill: THREE.Sprite;
+    fillMaterial: THREE.SpriteMaterial;
+  } {
+    const backgroundMaterial = new THREE.SpriteMaterial({
+      color: 0x07151c,
+      transparent: true,
+      opacity: 0.82,
+      depthTest: false,
+      depthWrite: false,
+    });
+    const fillMaterial = new THREE.SpriteMaterial({
+      color: 0x47e879,
+      depthTest: false,
+      depthWrite: false,
+    });
+
+    const background = new THREE.Sprite(backgroundMaterial);
+    background.position.set(0, 1.3, 0.7);
+    background.scale.set(HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT, 1);
+    background.renderOrder = 20;
+
+    const fill = new THREE.Sprite(fillMaterial);
+    fill.center.set(0, 0.5);
+    fill.position.set(-HEALTH_BAR_WIDTH / 2, 1.3, 0.71);
+    fill.scale.set(HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT * 0.7, 1);
+    fill.renderOrder = 21;
+
+    return { background, fill, fillMaterial };
+  }
+
+  private updateHealthBar(): void {
+    const ratio = THREE.MathUtils.clamp(this.health / this.maxHealth, 0, 1);
+    this.healthBarFill.scale.x = HEALTH_BAR_WIDTH * ratio;
+
+    if (ratio > 0.6) {
+      this.healthBarFillMaterial.color.setHex(0x47e879);
+    } else if (ratio > 0.3) {
+      this.healthBarFillMaterial.color.setHex(0xffc84a);
+    } else {
+      this.healthBarFillMaterial.color.setHex(0xff5364);
+    }
   }
 
   private pickWanderTarget(): void {
